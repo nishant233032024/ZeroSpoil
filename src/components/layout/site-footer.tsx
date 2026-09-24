@@ -6,7 +6,7 @@ const github =
   "https://github.com/nishant233032024";
 const linkedin =
   process.env.NEXT_PUBLIC_DEVELOPER_LINKEDIN ??
-  "https://www.linkedin.com/in/nishant-ghuge";
+  "https://www.linkedin.com/in/nishantghuge";
 
 export function SiteFooter() {
   return (
