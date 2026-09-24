@@ -2,8 +2,8 @@
 
 Mission-critical **perishable food surplus recovery** platform. Commercial kitchens list surplus; couriers claim batches atomically; AI evaluates safe shelf-life windows before food spoils.
 
-> Live deployment: add your Vercel URL here after `vercel --prod`.  
-> Repository: add your GitHub URL after first push.
+> Live deployment: deploy with `npx vercel --prod` after linking a Postgres URL.  
+> Repository: https://github.com/nishant233032024/ZeroSpoil
 
 ## Stack
 
