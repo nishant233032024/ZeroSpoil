@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  DONOR
+  COURIER
+  ADMIN
+}
+
+enum BatchStatus {
+  AVAILABLE
+  RESERVED
+  IN_TRANSIT
+  DELIVERED
+  EXPIRED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum StorageMethod {
+  AMBIENT
+  REFRIGERATED
+  FROZEN
+  HOT_HOLD
+}
+
+enum FoodCategory {
+  PREPARED_MEALS
+  DAIRY
+  PRODUCE
+  BAKERY
+  PROTEIN
+  OTHER
+}
+
+enum DietType {
+  VEGETARIAN
+  VEGAN
+  EGGETARIAN
+  NON_VEGETARIAN
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  donatedBatches    FoodBatch[]       @relation("DonorBatches")
+  claimedBatches    FoodBatch[]       @relation("ClaimedBatches")
+  handoffsAsCourier DispatchHandoff[] @relation("CourierHandoffs")
+
+  @@index([role])
+  @@index([email])
+}
+
+/// Regional Indian cuisine / food style (Punjabi, Chettinad, Bengali, etc.)
+model Cuisine {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  name         String
+  nativeName   String?
+  region       String
+  states       String[]
+  description  String
+  flavorProfile String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  dishes  Dish[]
+  batches FoodBatch[]
+
+  @@index([region])
+  @@index([name])
+}
+
+/// Canonical Indian dish / preparation style tied to a cuisine
+model Dish {
+  id                    String         @id @default(cuid())
+  slug                  String         @unique
+  name                  String
+  hindiName             String?
+  cuisineId             String
+  category              FoodCategory
+  dietType              DietType
+  defaultStorage        StorageMethod
+  typicalSafeWindowHours Float
+  perishability         RiskLevel
+  containsDairy         Boolean        @default(false)
+  containsNuts          Boolean        @default(false)
+  spiceLevel            Int            @default(2)
+  description           String
+  servingNotes          String?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  cuisine Cuisine     @relation(fields: [cuisineId], references: [id], onDelete: Cascade)
+  batches FoodBatch[]
+
+  @@index([cuisineId])
+  @@index([category])
+  @@index([dietType])
+  @@index([name])
+}
+
+model FoodBatch {
+  id                    String         @id @default(cuid())
+  title                 String
+  description           String?
+  category              FoodCategory
+  cuisineId             String?
+  dishId                String?
+  quantityKg            Float
+  ambientTemperatureC   Float
+  preparedAt            DateTime
+  storageMethod         StorageMethod
+  pickupAddress         String
+  safeWindowHours       Float
+  riskLevel             RiskLevel
+  refrigerationRequired Boolean
+  expiresAt             DateTime
+  status                BatchStatus    @default(AVAILABLE)
+  donorId               String
+  claimedById           String?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  donor     User              @relation("DonorBatches", fields: [donorId], references: [id])
+  claimedBy User?             @relation("ClaimedBatches", fields: [claimedById], references: [id])
+  cuisine   Cuisine?          @relation(fields: [cuisineId], references: [id])
+  dish      Dish?             @relation(fields: [dishId], references: [id])
+  handoff   DispatchHandoff?
+
+  @@index([status])
+  @@index([expiresAt])
+  @@index([donorId])
+  @@index([claimedById])
+  @@index([cuisineId])
+  @@index([dishId])
+  @@index([status, expiresAt])
+}
+
+model DispatchHandoff {
+  id          String    @id @default(cuid())
+  batchId     String    @unique
+  courierId   String
+  reservedAt  DateTime  @default(now())
+  pickedUpAt  DateTime?
+  deliveredAt DateTime?
+  shelterName String?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  batch   FoodBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  courier User      @relation("CourierHandoffs", fields: [courierId], references: [id])
+
+  @@index([courierId])
+  @@index([reservedAt])
+}
